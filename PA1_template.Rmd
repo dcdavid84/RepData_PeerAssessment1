@@ -7,6 +7,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.path="figs/fig-")
 ```
 
 This is the first course project for the Reproducible Research course.  
@@ -111,13 +112,13 @@ Convert the date column (currently a factor) into the date class using the lubri
 ```{r}
 library(lubridate)
 activitydata %>% mutate(date=ymd(date)) %>% 
-        mutate(wday= as.factor(ifelse(wday(date)>6,"weekend","weekday")))->activitydata
+        mutate(daytype= as.factor(ifelse(wday(date)>6,"weekend","weekday")))->activitydata
 ```
 Finally, let's plot the average steps per interval seperately to identify potential patterns in the weekday / weekend data. 
 ```{r}
-activitydata %>% group_by(interval,wday) %>% 
+activitydata %>% group_by(interval,daytype) %>% 
         summarize(avrgsteps=mean(steps,na.rm=TRUE),date=first(date)) %>%  
-ggplot(aes(x=interval,y=avrgsteps))+geom_line()+facet_grid(.~wday)
+ggplot(aes(x=interval,y=avrgsteps))+geom_line()+facet_grid(daytype~.)
 
 ```
 
