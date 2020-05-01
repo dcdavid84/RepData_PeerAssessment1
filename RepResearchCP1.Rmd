@@ -1,0 +1,49 @@
+---
+title: "Reproducible Research Course Project 1"
+author: "David R"
+date: "30/04/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This is the first course project for the Reproducible Research course.  
+First, the following [repository](https://github.com/rdpeng/RepData_PeerAssessment1) was cloned containing the original dataset *activity.zip*. Then the csv file was manually unzipped and stored as *activity.csv* in the same folder.  
+
+
+## Loading the data
+
+Load the data via the *read.csv* function. 
+
+```{r}
+activitydata<-read.csv("activity.csv")
+```
+
+## Calculate mean number of steps taken per day
+
+First load dplyr package to make use of pipeline operator and functions such as 
+group_by, summarize. 
+
+```{r}
+library(dplyr)
+```
+
+Next, sum totalsteps by day and store in new variable *aggActivity*.  
+Then calculate mean of total steps per day. 
+
+```{r}
+
+activitydata %>%as_tibble() %>% 
+                group_by(date) %>% 
+                summarize(totalsteps=sum(steps)) -> aggActivity
+
+mean(aggActivity$totalsteps, na.rm=TRUE)
+```
+and same for the median: 
+```{r}
+median(aggActivity$totalsteps, na.rm=TRUE)
+```
+
+
