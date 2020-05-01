@@ -11,6 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 This is the first course project for the Reproducible Research course.  
 First, the following [repository](https://github.com/rdpeng/RepData_PeerAssessment1) was cloned containing the original dataset *activity.zip*. Then the csv file was manually unzipped and stored as *activity.csv* in the same folder.  
+The follow paragraphs describe how the dataset was processed and basic metrics (mean, median) and plots (histograms) generated.  
 
 
 ## Loading the data
@@ -21,13 +22,15 @@ Load the data via the *read.csv* function.
 activitydata<-read.csv("activity.csv")
 ```
 
-## Calculate mean number of steps taken per day
+## Calculate and visualize mean number of steps taken per day
 
 First load dplyr package to make use of pipeline operator and functions such as 
-group_by, summarize. 
+group_by, summarize.  
+Then load ggplot library. 
 
 ```{r}
 library(dplyr)
+library(ggplot2)
 ```
 
 Next, sum totalsteps by day and store in new variable *aggActivity*.  
@@ -45,5 +48,79 @@ and same for the median:
 ```{r}
 median(aggActivity$totalsteps, na.rm=TRUE)
 ```
+Finally, plot a histogram of total steps per day:
+```{r}
+qplot(aggActivity$totalsteps,geom="histogram")
+```
+## Average daily activity pattern
+
+Let's analyse how an avrg daily activity pattern looks like. We will summarize the data by interval, calculate the avrg number of steps done during the observation period and visualize it via a lineplot.   
+
+```{r}
+activitydata %>%as_tibble() %>% 
+                group_by(interval) %>% 
+                summarize(avrgsteps=mean(steps,na.rm=TRUE)) -> actpattern
+qplot(actpattern$interval, actpattern$avrgsteps,geom="line")
+
+```  
+  
+Looks like the highest activity can be observed in the morning before 10. Let's check by returning the interval for which the avrgsteps column equals its maximum. 
+```{r}
+actpattern$interval[actpattern$avrgsteps==max(actpattern$avrgsteps,na.rm=TRUE)]
+```
+
+## Imputing missing values
+Let's deal with rows with <font color="red">NAs</font> of which, as it turns out, there are quite a few: 
+```{r}
+sum(is.na(activitydata$steps))
+```
+We will 'fill' these values by the average number of steps per 5 minute interval. This way, the mean steps should remain as with the original dataset. Firstly, let's write a function which takes a vector, replaces all <font color="red">NAs</font> with the average number of steps per 5 minute interval and returns the adjusted vector. 
+```{r}
+naReplace<- function(inputColumn)
+        {
+        inputColumn[is.na(inputColumn)]<-mean(actpattern$avrgsteps)
+        inputColumn
+        }
+```
+Let's see if this works
+```{r}
+naReplace(c(1,2,3,NA))
+```
+Beautiful! Now let's adjust the original dataset by overwriting all <font color="red">NAs</font> by the same value and store it in a new dataframe *adj_activitydata*.  
+```{r}
+activitydata %>% mutate(steps=naReplace(steps))->adj_activitydata
+```
+As a next step we will make histogram of the total number of steps taken each day of the adjusted dataset:
+```{r}
+adj_activitydata %>%as_tibble() %>% 
+                group_by(date) %>% 
+                summarize(totalsteps=sum(steps,na.rm=TRUE)) -> actpattern
+qplot(actpattern$totalsteps,geom="histogram")
+```
+As can be seen in the histogram of the adjusted dataset, replacing <font color="red">NAs</font> has lead to a new mode of the distribution. The bar containing the mean avrg steps is now by far the highest. However, as expected the mean value hasn't changed as this was our intention in the first place: 
+```{r}
+mean(actpattern$totalsteps)
+```
+Now let's check the median: 
+```{r}
+median(actpattern$totalsteps)
+```
+
+## Analyzing differences in patterns between weekdays and weekends
+Convert the date column (currently a factor) into the date class using the lubridate library. Use wday function to identify whether day is a weekday or weekend. Create additional factor column with weekend / weekday indicator.   
+```{r}
+library(lubridate)
+activitydata %>% mutate(date=ymd(date)) %>% 
+        mutate(wday= as.factor(ifelse(wday(date)>6,"weekend","weekday")))->activitydata
+```
+Finally, let's plot the average steps per interval seperately to identify potential patterns in the weekday / weekend data. 
+```{r}
+activitydata %>% group_by(interval,wday) %>% 
+        summarize(avrgsteps=mean(steps,na.rm=TRUE),date=first(date)) %>%  
+ggplot(aes(x=interval,y=avrgsteps))+geom_line()+facet_grid(.~wday)
+
+```
+
+
 
 
